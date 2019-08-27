@@ -1,0 +1,197 @@
+globals
+[
+  day-labor day-peasant
+
+  initial-number-labor
+  mature-number-labor
+  success-number-labor
+
+  initial-number-peasant
+  mature-number-peasant
+  success-number-peasant
+]
+breed [ labors labor ]
+breed [ poor-peasants poor-peasant ]
+
+labors-own [ net-earning-l overcome-poverty-ability-l overcome-poverty-will-l overcome-poverty-index-l stage-l]
+poor-peasants-own [ net-earning-p overcome-poverty-ability-p overcome-poverty-will-p overcome-poverty-index-p success-index stage-p]
+
+
+to setup
+  clear-all
+  ask patches [ set pcolor black ]
+  set initial-number-labor  initial-number-labors
+  set mature-number-labor 0
+  set success-number-labor 0
+
+  set initial-number-peasant  initial-number-peasants
+  set mature-number-peasant 0
+  set success-number-peasant 0
+  set-default-shape labors "person construction"
+  set-default-shape poor-peasants "person farmer"
+
+  create-labors initial-number-labors
+  [
+    set day-labor 0
+    set stage-l 0
+    setxy random-xcor random-ycor
+    set color white
+    set size 2.4
+    set label-color white
+  ]
+
+create-poor-peasants initial-number-peasants
+  [
+    set day-peasant 0
+    set stage-p 0
+    setxy random-xcor random-ycor
+    set color orange
+    set size 2.4
+    set label-color white
+  ]
+
+  display-labels
+  reset-ticks
+end
+
+to go
+  ask labors
+  [
+    work
+    function-labor
+
+    mature-stage
+    overcome-stage
+  ]
+
+  ask poor-peasants
+  [
+    farm
+    function-peasant
+
+    mature-stage
+    overcome-stage
+  ]
+  tick
+  display-labels
+  do-plots
+  if ticks >= 270 [ stop ]
+
+end
+
+to function-peasant
+   set overcome-poverty-ability-p ( random-normal tech-supports  1.8 + day-peasant * 0.1 )
+   set net-earning-p ( random least-living-securities + overcome-poverty-ability-p * ( 1 + success-index ) + random odd-job-incomes + random maintenance-bonus )
+   set overcome-poverty-will-p ( random-normal  (government-guidances-to-market * 0.1)  0.82 + random-normal (financial-supports * 0.2) 1.21 + random-normal (life-energy-facilities * 0.2) 1.2 + random-normal (traffic-facilities * 0.2) 0.770 )
+   set overcome-poverty-index-p ( net-earning-p * 0.3 + overcome-poverty-ability-p * 0.2 + overcome-poverty-will-p * 0.2 + ( random (random education-subsidies + random medical-aids ) * 0.3 ) ) + random (random 800)
+end
+
+to function-labor
+   set overcome-poverty-ability-l ( random-normal employment-guidances 1.7 + day-labor * 0.15 )
+   set net-earning-l ( random least-living-securities + overcome-poverty-ability-l * 2 )
+   set overcome-poverty-will-l ( random-normal (( random social-employments-environment ) * 0.1) 0.99 + random-normal (financial-supports * 0.1) 0.12 + random-normal (life-energy-facilities * 0.1) 1.34 + random-normal (traffic-facilities * 0.1) 0.67 )
+   set overcome-poverty-index-l ( net-earning-l * 0.3 + overcome-poverty-ability-l * 0.2 + overcome-poverty-will-l * 0.2 + ( random (random education-subsidies + random medical-aids ) * 0.3 ) ) + random (random 800)
+end
+
+
+to farm
+  rt random 50
+  lt random 50
+  fd 1
+  set success-index ( ( random-normal 0.25 0.083 ) )
+  set day-peasant ( day-peasant + 1 )
+end
+
+to work
+  rt random 50
+  lt random 50
+  fd 1
+  set day-labor ( day-labor + 1 )
+end
+
+
+to mature-stage
+  ask labors
+  [
+    if ( ( overcome-poverty-index-l <= 1710 ) and ( overcome-poverty-index-l > 1000 ) and ( stage-l = 0 ) )
+    [
+      set stage-l 1
+      set mature-number-labor ( mature-number-labor + 1 )
+      set initial-number-labor ( initial-number-labor - 1 )
+    ]
+  ]
+
+  ask poor-peasants
+  [
+    if ( ( overcome-poverty-index-p <= 1440 ) and ( overcome-poverty-index-p > 950 ) and ( stage-p = 0 ) )
+    [
+      set stage-p 1
+      set mature-number-peasant ( mature-number-peasant + 1 )
+      set initial-number-peasant ( initial-number-peasant - 1 )
+    ]
+  ]
+end
+
+to overcome-stage
+  ask labors
+  [
+    if ( ( overcome-poverty-index-l <= 2500 ) and (overcome-poverty-index-l > 1710 ) and ( stage-l = 1 ) )
+    [
+      set stage-l 2
+      set success-number-labor ( success-number-labor + 1 )
+      set mature-number-labor ( mature-number-labor - 1 )
+    ]
+  ]
+
+  ask poor-peasants
+  [
+    if ( ( overcome-poverty-index-p <= 2500 ) and (overcome-poverty-index-p > 1440 ) and ( stage-p = 1 ) )
+    [
+      set stage-p 2
+      set success-number-peasant ( success-number-peasant + 1 )
+      set mature-number-peasant ( mature-number-peasant - 1 )
+    ]
+  ]
+end
+
+
+to display-labels
+  ask labors [ set label "" ]
+  ask poor-peasants [ set label "" ]
+
+  if show-overcome-poverty-index?
+  [
+    ask labors [ set label round overcome-poverty-index-l ]
+
+    ;;ask labors [ set label round stage ]
+
+    ask poor-peasants [ set label round overcome-poverty-index-p ]
+
+    ;;ask poor-peasants [ set label round stage ]
+  ]
+
+end
+
+to do-plots
+
+ set-current-plot "各阶段脱贫人数比例示意"
+
+ set-current-plot-pen "initial stage(labor)"
+ plot initial-number-labor
+
+ set-current-plot-pen "mature stage(labor)"
+ plot mature-number-labor
+
+ set-current-plot-pen "overcome stage(labor)"
+ plot success-number-labor
+
+ set-current-plot-pen "initial stage(peasant)"
+ plot initial-number-peasant
+
+ set-current-plot-pen "mature stage(peasant)"
+ plot mature-number-peasant
+
+ set-current-plot-pen "overcome stage(peasant)"
+ plot success-number-peasant
+
+end
